@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>채점 노트</title>
+<style>
+:root { color-scheme: light dark; --bg: light-dark(#f5f4ef,#171918); --panel: light-dark(#ffffff,#222624); --ink: light-dark(#202824,#f0f3ef); --muted: light-dark(#69736d,#a8b1ab); --line: light-dark(#dfe4de,#3b433e); --accent: light-dark(#216b51,#82d7ad); --accent-ink: light-dark(#fff,#10271d); --soft: light-dark(#eaf4ee,#263b30); --bad: light-dark(#b53d43,#ff9297); }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+#app { min-height: 100vh; width: 100%; background: var(--bg); padding: 28px 18px 56px; }
+.wrap { max-width: 760px; margin: 0 auto; }
+.topline { display:flex; align-items:center; gap:10px; margin-bottom:36px; }
+.logo { width:38px;height:38px;border-radius:12px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:900;font-size:20px; }
+.brand { font-size:14px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+.eyebrow { color:var(--accent); font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; margin-bottom:10px; }
+h1 { font-size:clamp(32px,6vw,48px); letter-spacing:-.055em; line-height:1.08; margin:0 0 14px; }
+.intro { color:var(--muted); line-height:1.7; margin:0 0 26px; max-width:560px; }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:22px; padding:clamp(18px,4vw,30px); box-shadow:0 12px 36px #00000008; }
+.setup { display:flex; gap:12px; align-items:end; flex-wrap:wrap; margin-bottom:24px; }
+.field-label { display:block; font-size:13px; color:var(--muted); font-weight:700; margin-bottom:8px; }
+input { font:inherit; }
+.count-input { width:120px; }
+input[type="text"], input[type="number"] { width:100%; min-width:0; border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:11px; padding:13px 14px; outline:none; transition:border-color .15s, box-shadow .15s; }
+input:focus { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent); }
+button { border:0; border-radius:12px; padding:13px 18px; font:inherit; font-weight:800; cursor:pointer; transition:transform .12s,opacity .12s; }
+button:active { transform:scale(.98); }
+button:disabled { opacity:.4; cursor:not-allowed; }
+.primary { background:var(--accent); color:var(--accent-ink); }
+.secondary { background:var(--soft); color:var(--ink); }
+.text-btn { background:transparent; color:var(--muted); padding:10px 4px; }
+.stage-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:22px; }
+.stage-title { font-size:22px; font-weight:850; letter-spacing:-.03em; }
+.step { font-size:12px; font-weight:800; color:var(--accent); background:var(--soft); padding:7px 10px; border-radius:99px; white-space:nowrap; }
+.progress { height:5px; border-radius:99px; background:var(--line); overflow:hidden; margin-bottom:24px; }
+.progress > div { height:100%; background:var(--accent); width:0; transition:width .2s; }
+.hint { color:var(--muted); font-size:13px; line-height:1.6; margin:0 0 18px; }
+.answers { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.answer-item { min-width:0; }
+.answer-item label { display:flex; justify-content:space-between; gap:8px; font-size:12px; color:var(--muted); font-weight:800; margin:0 0 7px; }
+.answer-item input { font-size:16px; }
+.actions { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:24px; flex-wrap:wrap; }
+.action-right { display:flex; gap:10px; flex-wrap:wrap; }
+.result-score { font-size:52px; letter-spacing:-.06em; font-weight:900; line-height:1; }
+.result-sub { color:var(--muted); margin-top:8px; }
+.result-top { display:flex; justify-content:space-between; align-items:center; gap:18px; flex-wrap:wrap; padding-bottom:24px; border-bottom:1px solid var(--line); margin-bottom:22px; }
+.result-label { color:var(--muted); font-size:13px; font-weight:700; margin-bottom:8px; }
+.result-list { display:grid; gap:10px; }
+.result-row { display:grid; grid-template-columns:58px 1fr 1fr; gap:12px; align-items:start; padding:14px; border:1px solid var(--line); border-radius:13px; }
+.qnum { font-weight:900; color:var(--bad); }
+.result-row.correct .qnum { color:var(--accent); }
+.answer-value { font-size:14px; overflow-wrap:anywhere; }
+.answer-value small { display:block; color:var(--muted); font-size:11px; margin-bottom:5px; }
+.empty { color:var(--muted); padding:18px 0; }
+.footer { color:var(--muted); text-align:center; font-size:12px; margin-top:22px; }
+.hidden { display:none !important; }
+@media(max-width:520px) { #app{padding:20px 14px 40px}.answers{grid-template-columns:1fr}.result-row{grid-template-columns:48px 1fr 1fr;gap:8px;padding:11px}.stage-title{font-size:20px}.topline{margin-bottom:28px} }
+</style>
+</head>
+<body>
+<div id="app">
+ <main class="wrap">
+  <div class="topline"><div class="logo">✓</div><div class="brand">채점 노트 <span style="color:var(--muted);font-weight:500">/ ANSWER CHECKER</span></div></div>
+  <div class="eyebrow">YOUR PERSONAL GRADER</div>
+  <h1>답을 입력하고,<br>한 번에 채점하세요.</h1>
+  <p class="intro">과목 상관없이 사용할 수 있는 나만의 채점 도구예요. 먼저 정답을 입력한 뒤 내 답을 입력하면 틀린 번호와 정답을 확인할 수 있어요.</p>
+  <section class="panel" id="setupPanel">
+   <div class="setup"><div class="count-input"><label class="field-label" for="questionCount">문제 수</label><input id="questionCount" type="number" min="1" max="200" value="9"></div><button class="primary" id="startBtn">정답 입력 시작 <span aria-hidden="true">→</span></button></div>
+   <p class="hint" style="margin:0">객관식, 단답형 모두 가능해요. 입력한 답을 기준으로 공백을 제외하고 비교합니다.</p>
+  </section>
+  <section class="panel hidden" id="entryPanel" aria-live="polite">
+   <div class="stage-head"><div class="stage-title" id="stageTitle">정답 입력</div><div class="step" id="stageStep">STEP 1 / 2</div></div>
+   <div class="progress"><div id="progressFill"></div></div>
+   <p class="hint" id="stageHint">각 문제의 정답을 입력하세요. 입력 후 Enter를 누르면 다음 칸으로 이동합니다.</p>
+   <div class="answers" id="answerFields"></div>
+   <div class="actions"><button class="text-btn" id="backBtn">← 처음으로</button><div class="action-right"><button class="secondary" id="nextBtn">다음 칸으로 ↓</button><button class="primary" id="completeBtn">전체 정답 입력 완료 →</button></div></div>
+  </section>
+  <section class="panel hidden" id="resultPanel" aria-live="polite">
+   <div class="result-top"><div><div class="result-label">채점 결과</div><div class="result-score" id="scoreText">9 / 9</div><div class="result-sub" id="scoreSub">모든 답을 확인했어요.</div></div><button class="primary" id="retryBtn">새로 채점하기 ↻</button></div>
+   <div class="stage-title" style="font-size:18px;margin-bottom:14px" id="wrongTitle">틀린 문제</div>
+   <div class="result-list" id="resultList"></div>
+   <div class="actions"><button class="text-btn" id="editBtn">← 내 답 수정하기</button><button class="secondary" id="showAllBtn">전체 답 보기</button></div>
+  </section>
+  <div class="footer">입력한 답은 이 페이지 안에서만 사용돼요. 페이지를 새로고침하면 초기화됩니다.</div>
+ </main>
+</div>
+<script>
+(() => {
+ const $ = id => document.getElementById(id);
+ const setupPanel = $('setupPanel'), entryPanel = $('entryPanel'), resultPanel = $('resultPanel');
+ let count = 9, mode = 'key', keys = [], mine = [], showAll = false;
+ function normalize(value) { return String(value ?? '').replace(/\s+/g, '').toLocaleLowerCase(); }
+ function setPanel(panel) { [setupPanel, entryPanel, resultPanel].forEach(p => p.classList.add('hidden')); panel.classList.remove('hidden'); }
+ function start() {
+  const n = Number($('questionCount').value);
+  if (!Number.isInteger(n) || n < 1 || n > 200) { alert('문제 수는 1부터 200 사이로 입력해 주세요.'); return; }
+  count = n; keys = Array(count).fill(''); mine = Array(count).fill(''); mode = 'key'; renderFields(); setPanel(entryPanel);
+ }
+ function renderFields(focusIndex = 0) {
+  const isKey = mode === 'key';
+  $('stageTitle').textContent = isKey ? '정답 입력' : '내 답 입력';
+  $('stageStep').textContent = isKey ? 'STEP 1 / 2' : 'STEP 2 / 2';
+  $('stageHint').textContent = isKey ? '각 문제의 정답을 입력하세요. 입력 후 Enter를 누르면 다음 칸으로 이동합니다.' : '이제 내가 작성한 답을 입력하세요. 마지막 칸에서 Enter를 누르면 바로 채점돼요.';
+  $('completeBtn').textContent = isKey ? '전체 정답 입력 완료 →' : '내 답 입력 완료 · 채점하기';
+  const fields = $('answerFields'); fields.innerHTML = '';
+  const data = isKey ? keys : mine;
+  for (let i=0; i<count; i++) {
+   const item = document.createElement('div'); item.className = 'answer-item';
+   const label = document.createElement('label'); label.htmlFor = `answer-${i}`;
+   const left = document.createElement('span'); left.textContent = `${i+1}번 문제`;
+   const right = document.createElement('span'); right.textContent = `${i+1} / ${count}`;
+   label.append(left,right);
+   const input = document.createElement('input'); input.type='text'; input.id=`answer-${i}`; input.autocomplete='off'; input.spellcheck=false; input.placeholder = isKey ? '정답 입력' : '내 답 입력'; input.value=data[i] || ''; input.setAttribute('aria-label', `${i+1}번 ${isKey?'정답':'내 답'}`);
+   input.addEventListener('input', () => { data[i] = input.value; updateProgress(); });
+   input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); if (i < count-1) { fields.querySelector(`#answer-${i+1}`).focus(); } else if (isKey) { moveToMine(); } else { grade(); } } });
+   item.append(label,input); fields.append(item);
+  }
+  updateProgress();
+  const target = fields.querySelector(`#answer-${Math.min(Math.max(focusIndex,0),count-1)}`); if (target) target.focus({preventScroll:true});
+ }
+ function updateProgress() {
+  const data = mode === 'key' ? keys : mine; const filled = data.filter(v => String(v).trim() !== '').length;
+  $('progressFill').style.width = `${filled/count*100}%`;
+ }
+ function moveToMine() { mode='mine'; renderFields(0); }
+ function grade() {
+  const missingKey = keys.findIndex(v => String(v).trim()==='');
+  const missingMine = mine.findIndex(v => String(v).trim()==='');
+  if (missingKey >= 0 || missingMine >= 0) {
+   const idx = missingKey >= 0 ? missingKey : missingMine;
+   alert(`${idx+1}번 ${missingKey >= 0 ? '정답' : '내 답'}이 비어 있어요. 모든 칸을 입력해 주세요.`);
+   if (missingKey >= 0) { mode='key'; renderFields(idx); } else { renderFields(idx); }
+   return;
+  }
+  showAll=false; renderResults(); setPanel(resultPanel);
+ }
+ function renderResults() {
+  const wrong = keys.map((key,i)=>({key,mine:mine[i],i,correct:normalize(key)===normalize(mine[i])})).filter(x=>!x.correct);
+  $('scoreText').textContent = `${count-wrong.length} / ${count}`;
+  $('scoreSub').textContent = wrong.length ? `총 ${count}문제 중 ${wrong.length}문제를 다시 확인해 보세요.` : '완벽해요! 모든 답이 정답입니다.';
+  $('wrongTitle').textContent = showAll ? '전체 채점 결과' : '틀린 문제';
+  const list=$('resultList'); list.innerHTML=''; const rows=showAll ? keys.map((key,i)=>({key,mine:mine[i],i,correct:normalize(key)===normalize(mine[i])})) : wrong;
+  if (!rows.length) { const empty=document.createElement('div'); empty.className='empty'; empty.textContent='틀린 문제가 없어요. 잘했어요!'; list.append(empty); }
+  rows.forEach(row=>{
+   const el=document.createElement('div'); el.className=`result-row${row.correct?' correct':''}`;
+   const num=document.createElement('div'); num.className='qnum'; num.textContent=`${row.i+1}번 ${row.correct?'✓':'✕'}`;
+   const mineCol=document.createElement('div'); mineCol.className='answer-value'; const mineLabel=document.createElement('small'); mineLabel.textContent='내 답'; mineCol.append(mineLabel,document.createTextNode(row.mine));
+   const keyCol=document.createElement('div'); keyCol.className='answer-value'; const keyLabel=document.createElement('small'); keyLabel.textContent='정답'; keyCol.append(keyLabel,document.createTextNode(row.key));
+   el.append(num,mineCol,keyCol); list.append(el);
+  });
+  $('showAllBtn').textContent=showAll?'틀린 문제만 보기':'전체 답 보기';
+ }
+ $('startBtn').addEventListener('click',start);
+ $('questionCount').addEventListener('keydown',e=>{if(e.key==='Enter')start();});
+ $('completeBtn').addEventListener('click',()=>{if(mode==='key')moveToMine();else grade();});
+ $('nextBtn').addEventListener('click',()=>{const inputs=[...$('answerFields').querySelectorAll('input')]; const idx=inputs.indexOf(document.activeElement); inputs[Math.min(idx+1,inputs.length-1)]?.focus();});
+ $('backBtn').addEventListener('click',()=>setPanel(setupPanel));
+ $('retryBtn').addEventListener('click',()=>{keys=[];mine=[];$('questionCount').value=9;setPanel(setupPanel);});
+ $('editBtn').addEventListener('click',()=>{mode='mine';renderFields(0);setPanel(entryPanel);});
+ $('showAllBtn').addEventListener('click',()=>{showAll=!showAll;renderResults();});
+})();
+</script>
+</body>
+</html>
