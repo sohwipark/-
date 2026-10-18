@@ -49,6 +49,8 @@ button:disabled { opacity:.4; cursor:not-allowed; }
 .result-row { display:grid; grid-template-columns:58px 1fr 1fr; gap:12px; align-items:start; padding:14px; border:1px solid var(--line); border-radius:13px; }
 .qnum { font-weight:900; color:var(--bad); }
 .result-row.correct .qnum { color:var(--accent); }
+.answer-toggle { display:flex; align-items:center; gap:9px; padding:11px 14px; border:1px solid var(--line); border-radius:12px; cursor:pointer; font-weight:800; font-size:14px; background:var(--soft); }
+.answer-toggle input { width:18px; height:18px; accent-color:var(--accent); cursor:pointer; }
 .answer-value { font-size:14px; overflow-wrap:anywhere; }
 .answer-value small { display:block; color:var(--muted); font-size:11px; margin-bottom:5px; }
 .empty { color:var(--muted); padding:18px 0; }
@@ -79,7 +81,7 @@ button:disabled { opacity:.4; cursor:not-allowed; }
    <div class="result-top"><div><div class="result-label">채점 결과</div><div class="result-score" id="scoreText">9 / 9</div><div class="result-sub" id="scoreSub">모든 답을 확인했어요.</div></div><button class="primary" id="retryBtn">새로 채점하기 ↻</button></div>
    <div class="stage-title" style="font-size:18px;margin-bottom:14px" id="wrongTitle">틀린 문제</div>
    <div class="result-list" id="resultList"></div>
-   <div class="actions"><button class="text-btn" id="editBtn">← 내 답 수정하기</button><button class="secondary" id="showAllBtn">전체 답 보기</button></div>
+   <div class="actions"><button class="text-btn" id="editBtn">← 내 답 수정하기</button><label class="answer-toggle"><input type="checkbox" id="showAnswers"> 정답 보기</label></div>
   </section>
   <div class="footer">입력한 답은 이 페이지 안에서만 사용돼요. 페이지를 새로고침하면 초기화됩니다.</div>
  </main>
@@ -138,26 +140,35 @@ button:disabled { opacity:.4; cursor:not-allowed; }
   const wrong = keys.map((key,i)=>({key,mine:mine[i],i,correct:normalize(key)===normalize(mine[i])})).filter(x=>!x.correct);
   $('scoreText').textContent = `${count-wrong.length} / ${count}`;
   $('scoreSub').textContent = wrong.length ? `총 ${count}문제 중 ${wrong.length}문제를 다시 확인해 보세요.` : '완벽해요! 모든 답이 정답입니다.';
-  $('wrongTitle').textContent = showAll ? '전체 채점 결과' : '틀린 문제';
-  const list=$('resultList'); list.innerHTML=''; const rows=showAll ? keys.map((key,i)=>({key,mine:mine[i],i,correct:normalize(key)===normalize(mine[i])})) : wrong;
-  if (!rows.length) { const empty=document.createElement('div'); empty.className='empty'; empty.textContent='틀린 문제가 없어요. 잘했어요!'; list.append(empty); }
+  $('wrongTitle').textContent = showAll ? '전체 채점 결과' : '틀린 문제 번호';
+  const list=$('resultList'); list.innerHTML='';
+  const rows=showAll ? keys.map((key,i)=>({key,mine:mine[i],i,correct:normalize(key)===normalize(mine[i])})) : wrong;
+  if (!rows.length) {
+   const empty=document.createElement('div'); empty.className='empty'; empty.textContent='틀린 문제가 없어요. 잘했어요!'; list.append(empty);
+  }
   rows.forEach(row=>{
    const el=document.createElement('div'); el.className=`result-row${row.correct?' correct':''}`;
    const num=document.createElement('div'); num.className='qnum'; num.textContent=`${row.i+1}번 ${row.correct?'✓':'✕'}`;
-   const mineCol=document.createElement('div'); mineCol.className='answer-value'; const mineLabel=document.createElement('small'); mineLabel.textContent='내 답'; mineCol.append(mineLabel,document.createTextNode(row.mine));
-   const keyCol=document.createElement('div'); keyCol.className='answer-value'; const keyLabel=document.createElement('small'); keyLabel.textContent='정답'; keyCol.append(keyLabel,document.createTextNode(row.key));
-   el.append(num,mineCol,keyCol); list.append(el);
+   el.append(num);
+   if (showAll) {
+    const mineCol=document.createElement('div'); mineCol.className='answer-value'; const mineLabel=document.createElement('small'); mineLabel.textContent='내 답'; mineCol.append(mineLabel,document.createTextNode(row.mine));
+    const keyCol=document.createElement('div'); keyCol.className='answer-value'; const keyLabel=document.createElement('small'); keyLabel.textContent='정답'; keyCol.append(keyLabel,document.createTextNode(row.key));
+    el.append(mineCol,keyCol);
+   } else {
+    const msg=document.createElement('div'); msg.className='answer-value'; msg.style.gridColumn='span 2'; msg.textContent='정답을 보려면 아래의 「정답 보기」를 선택하세요.'; msg.style.color='var(--muted)'; el.append(msg);
+   }
+   list.append(el);
   });
-  $('showAllBtn').textContent=showAll?'틀린 문제만 보기':'전체 답 보기';
+  $('showAnswers').checked = showAll;
  }
  $('startBtn').addEventListener('click',start);
  $('questionCount').addEventListener('keydown',e=>{if(e.key==='Enter')start();});
  $('completeBtn').addEventListener('click',()=>{if(mode==='key')moveToMine();else grade();});
  $('nextBtn').addEventListener('click',()=>{const inputs=[...$('answerFields').querySelectorAll('input')]; const idx=inputs.indexOf(document.activeElement); inputs[Math.min(idx+1,inputs.length-1)]?.focus();});
  $('backBtn').addEventListener('click',()=>setPanel(setupPanel));
- $('retryBtn').addEventListener('click',()=>{keys=[];mine=[];$('questionCount').value=9;setPanel(setupPanel);});
+ $('retryBtn').addEventListener('click',()=>{keys=[];mine=[];showAll=false;$('showAnswers').checked=false;$('questionCount').value=9;setPanel(setupPanel);});
  $('editBtn').addEventListener('click',()=>{mode='mine';renderFields(0);setPanel(entryPanel);});
- $('showAllBtn').addEventListener('click',()=>{showAll=!showAll;renderResults();});
+ $('showAnswers').addEventListener('change',()=>{showAll=$('showAnswers').checked;renderResults();});
 })();
 </script>
 </body>
